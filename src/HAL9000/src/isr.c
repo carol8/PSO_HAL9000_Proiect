@@ -152,6 +152,12 @@ _IsrExceptionHandler(
 
         LOG_ERROR("Could not handle exception 0x%x [%s]\n", InterruptIndex, EXCEPTION_NAME[InterruptIndex]);
 
+        if (!GdtIsSegmentPrivileged((WORD)StackPointer->Registers.CS)) {
+            PPROCESS currentProcess = GetCurrentProcess();
+            LOG_ERROR("Exception encountered, terminating process %s", ProcessGetName(currentProcess));
+            ProcessTerminate(currentProcess);
+        }
+
         DumpInterruptStack(StackPointer, ErrorCodeAvailable );
         DumpControlRegisters();
         DumpProcessorState(ProcessorState);
@@ -172,7 +178,7 @@ _IsrExceptionHandler(
         }
     }
 
-    ASSERT_INFO(exceptionHandled, "Exception 0x%x was not handled\n", InterruptIndex);
+    //ASSERT_INFO(exceptionHandled, "Exception 0x%x was not handled\n", InterruptIndex);
 }
 
 static
