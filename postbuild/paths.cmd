@@ -12,6 +12,7 @@ set PATH_TO_VM_DISK=__EMPTY__
 set PATH_TO_VM_TOOLS=__EMPTY__
 set VOL_MOUNT_LETTER=__EMPTY__
 
+if _%COMPUTERNAME%_==_DESKTOP-I35F8VA_ goto config_DESKTOP-I35F8VA
 if _%COMPUTERNAME%_==_DESKTOP-NITRO5_ goto config_DESKTOP-NITRO5
 if _%COMPUTERNAME%_==_AGURZOU-DEV-PC_ goto config_AGURZOU-DEV
 if _%COMPUTERNAME%_==_ALEX-PC_ goto config_ALEX-PC
@@ -78,6 +79,17 @@ SET PXE_PATH="D:\OneDrive - Technical University of Cluj-Napoca\UTCN\An IV\S1\_C
 SET PATH_TO_LOG_FILE="D:\OneDrive - Technical University of Cluj-Napoca\UTCN\An IV\S1\_Cod_Proiecte_Teme\PSO_TestP\HAL9000\VM\HAL9000_VM\HAL9000.log"
 SET PATH_TO_VIX_TOOLS="C:\Program Files (x86)\VMware\VMware Workstation"
 SET PATH_TO_VM_DISK="D:\OneDrive - Technical University of Cluj-Napoca\UTCN\An IV\S1\_Cod_Proiecte_Teme\PSO_TestP\HAL9000\VM\HAL9000_VM\HAL9000.vmdk"
+SET VOL_MOUNT_LETTER="Q:"
+goto end
+
+:config_DESKTOP-I35F8VA
+
+SET PATH_TO_LOG_FILE="D:\GitHub\PSO_TestP\HAL9000\VM\HAL9000_VM\HAL9000.log"
+SET PATH_TO_VM_TOOLS="C:\Program Files (x86)\VMware\VMware Virtual Disk Development Kit"
+SET PATH_TO_VIX_TOOLS="C:\Program Files (x86)\VMware\VMware Workstation"
+SET PATH_TO_VM_DISK="D:\GitHub\PSO_TestP\HAL9000\VM\HAL9000_VM\HAL9000.vmdk"
+SET PATH_TO_VM_FILE="D:\GitHub\PSO_TestP\HAL9000\VM\HAL9000_VM\HAL9000.vmx"
+SET PXE_PATH="D:\GitHub\PSO_TestP\HAL9000\PXE"
 SET VOL_MOUNT_LETTER="Q:"
 goto end
 
