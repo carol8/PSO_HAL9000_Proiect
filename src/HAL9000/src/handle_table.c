@@ -4,7 +4,7 @@
 #include "process_internal.h"
 
 UM_HANDLE
-HandleListInsertNextList(
+HandleListInsertHandle(
 	PVOID Handle,
 	HANDLE_TYPE HandleType)
 {
@@ -13,7 +13,6 @@ HandleListInsertNextList(
 	UM_HANDLE index;
 	INTR_STATE dummy;
 	PLIST_ENTRY it;
-	PVOID returnValue = 0;
 
 	LockAcquire(&pProcess->HandleListLock, &dummy);
 
@@ -21,20 +20,20 @@ HandleListInsertNextList(
 		it != handleTable;
 		it = it->Flink, index++)
 	{
-		PHandle_Table_Entry entry = CONTAINING_RECORD(it, Handle_Table_Entry, HandleListElem);
+		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
 		if (entry->Reserved == 0)
 			break;
 	}
 
 	if (it != handleTable) {
-		PHandle_Table_Entry entry = CONTAINING_RECORD(it, Handle_Table_Entry, HandleListElem);
+		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
 		entry->Reserved = 1;
 		entry->Type = HandleType;
 		entry->Handle = Handle;
 	}
 	else
 	{
-		Handle_Table_Entry newEntry;
+		HANDLE_TABLE_ENTRY newEntry;
 		newEntry.Handle = Handle;
 		newEntry.Type = HandleType;
 		newEntry.Reserved = 1;
@@ -66,7 +65,7 @@ HandleListGetHandleByIndex(
 		it = it->Flink, index++);
 	
 	if (it != handleTable) {
-		PHandle_Table_Entry entry = CONTAINING_RECORD(it, Handle_Table_Entry, HandleListElem);
+		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
 		if (entry->Reserved == 1 && entry->Type == HandleType) {
 			returnValue = entry->Handle;
 		}
@@ -87,7 +86,6 @@ HandleListRemoveHandle(
 	UM_HANDLE index;
 	INTR_STATE dummy;
 	PLIST_ENTRY it;
-	PVOID returnValue = 0;	
 	STATUS status = STATUS_SUCCESS;
 
 	LockAcquire(&pProcess->HandleListLock, &dummy);
@@ -96,7 +94,7 @@ HandleListRemoveHandle(
 		it != handleTable && index < Handle;
 		it = it->Flink, index++)
 	{
-		PHandle_Table_Entry entry = CONTAINING_RECORD(it, Handle_Table_Entry, HandleListElem);
+		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
 		if (entry->Handle == Handle) {
 			entry->Reserved = 0;
 			break;

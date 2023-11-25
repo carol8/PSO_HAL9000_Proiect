@@ -11,7 +11,7 @@ typedef enum _HANDLE_TYPE
 	FILE_HANDLE
 } HANDLE_TYPE;
 
-typedef struct _Handle_Table_Entry
+typedef struct _HANDLE_TABLE_ENTRY
 {
 	// A list entry for connecting the handle entry with the handle list
 	LIST_ENTRY HandleListElem;
@@ -24,10 +24,10 @@ typedef struct _Handle_Table_Entry
 
 	// A byte that signals if the handle is still valid or not
 	BYTE Reserved;
-} Handle_Table_Entry, *PHandle_Table_Entry;
+} HANDLE_TABLE_ENTRY, *PHANDLE_TABLE_ENTRY;
 
 UM_HANDLE
-HandleListInsertNextList(
+HandleListInsertHandle(
 	PVOID Handle,
 	HANDLE_TYPE HandleType);
 
