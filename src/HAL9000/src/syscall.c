@@ -67,7 +67,9 @@ SyscallHandler(
         case SyscallIdIdentifyVersion:
             status = SyscallValidateInterface((SYSCALL_IF_VERSION)*pSyscallParameters);
             break;
-        // STUDENT TODO: implement the rest of the syscalls
+        case SyscallIdProcessExit:
+			status = SyscallProcessExit((STATUS) pSyscallParameters[0]);
+			break;
         default:
             LOG_ERROR("Unimplemented syscall called from User-space!\n");
             status = STATUS_UNSUPPORTED;
@@ -169,4 +171,11 @@ SyscallValidateInterface(
     return STATUS_SUCCESS;
 }
 
-// STUDENT TODO: implement the rest of the syscalls
+STATUS 
+SyscallProcessExit(
+    IN STATUS ExitStatus
+)
+{
+    ProcessTerminate(GetCurrentProcess());
+    return ExitStatus;
+}
