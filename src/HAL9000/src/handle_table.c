@@ -86,23 +86,20 @@ HandleListRemoveHandle(
 	UM_HANDLE index;
 	INTR_STATE dummy;
 	PLIST_ENTRY it;
-	STATUS status = STATUS_SUCCESS;
+	STATUS status = STATUS_ELEMENT_NOT_FOUND;
 
 	LockAcquire(&pProcess->HandleListLock, &dummy);
 
 	for (it = handleTable->Flink, index = 0;
 		it != handleTable && index < Handle;
-		it = it->Flink, index++)
-	{
-		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
-		if (entry->Handle == Handle) {
-			entry->Reserved = 0;
-			break;
-		}
-	}
+		it = it->Flink, index++);
 
-	if (it == handleTable) {
-		status = STATUS_ELEMENT_NOT_FOUND;
+	if (it != handleTable) {
+		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
+		if (entry->Type == HandleType) {
+			entry->Reserved = 0;
+			status = STATUS_SUCCESS;
+		}
 	}
 
 	LockRelease(&pProcess->HandleListLock, dummy);
