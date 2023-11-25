@@ -58,6 +58,14 @@ typedef struct _PROCESS
 
     // VaSpace used only for UM virtual memory allocations
     struct _VMM_RESERVATION_SPACE*  VaSpace;
+
+	// Protect the per-process handle list
+	LOCK HandleListLock;
+
+	// The list ’s head
+	_Guarded_by_(HandleListLock)
+	LIST_ENTRY HandleListHead;
+
 } PROCESS, *PPROCESS;
 
 //******************************************************************************

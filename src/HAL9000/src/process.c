@@ -517,6 +517,9 @@ _ProcessInit(
         MutexRelease(&m_processData.ProcessListLock);
 
         LOG_TRACE_PROCESS("Process with PID 0x%X created\n", pProcess->Id);
+
+        InitializeListHead(&pProcess->HandleListHead);
+        LockInit(&pProcess->HandleListLock);
     }
     __finally
     {

@@ -188,6 +188,7 @@
     <ClCompile Include="src\cmd_basic.c" />
     <ClCompile Include="src\cmd_proc_helper.c" />
     <ClCompile Include="src\dmp_process.c" />
+    <ClCompile Include="src\handle_table.c" />
     <ClCompile Include="src\process.c" />
     <ClCompile Include="src\cmd_fs_helper.c" />
     <ClCompile Include="src\cmd_interpreter.c" />
@@ -313,6 +314,7 @@
     <ClInclude Include="headers\dmp_process.h" />
     <ClInclude Include="headers\dmp_volume.h" />
     <ClInclude Include="headers\dmp_mdl.h" />
+    <ClInclude Include="headers\handle_table.h" />
     <ClInclude Include="headers\process.h" />
     <ClInclude Include="headers\process_internal.h" />
     <ClInclude Include="headers\ex_system.h" />
