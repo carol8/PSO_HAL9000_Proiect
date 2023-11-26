@@ -709,25 +709,6 @@ ProcessRemoveThreadFromList(
 }
 
 static
-STATUS
-DeallocHandleTableEntry(
-    IN      PLIST_ENTRY         HandleListEntry,
-    IN_OPT  PVOID               FunctionContext
-)
-{
-    ASSERT(FunctionContext == NULL);
-	if(HandleListEntry == NULL) {
-		return STATUS_INVALID_PARAMETER1;
-	}
-
-    PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(HandleListEntry, HANDLE_TABLE_ENTRY, HandleListElem);
-
-    ExFreePoolWithTag(entry, HEAP_PROCESS_TAG);
-
-    return STATUS_SUCCESS;
-}
-
-static
 void
 _ProcessDestroy(
     IN      PVOID                   Object,
@@ -735,7 +716,7 @@ _ProcessDestroy(
     )
 {
     PPROCESS Process = (PPROCESS) CONTAINING_RECORD(Object, PROCESS, RefCnt);
-    INTR_STATE dummyState;
+    //INTR_STATE dummyState;
 
     ASSERT(NULL != Process);
     ASSERT(!ProcessIsSystem(Process));
@@ -754,9 +735,15 @@ _ProcessDestroy(
     RemoveEntryList(&Process->NextProcess);
     MutexRelease(&m_processData.ProcessListLock);
 
-    LockAcquire(&Process->HandleListLock, &dummyState);
-    ForEachElementExecute(&Process->HandleListHead, DeallocHandleTableEntry, NULL, 1);
-    LockRelease(&Process->HandleListLock, dummyState);
+    /*LockAcquire(&Process->HandleListLock, &dummyState);
+    PLIST_ENTRY it = Process->HandleListHead.Flink->Flink;
+    while (it != &Process->HandleListHead) {
+        PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it->Blink, HANDLE_TABLE_ENTRY, HandleListElem);
+        ExFreePoolWithTag(entry, HEAP_PROCESS_TAG);
+    }
+	PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it->Blink, HANDLE_TABLE_ENTRY, HandleListElem);
+	ExFreePoolWithTag(entry, HEAP_PROCESS_TAG);
+    LockRelease(&Process->HandleListLock, dummyState);*/
 
     if (NULL != Process->FullCommandLine)
     {
