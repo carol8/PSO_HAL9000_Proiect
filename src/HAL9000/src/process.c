@@ -716,7 +716,7 @@ DeallocHandleTableEntry(
 )
 {
     ASSERT(FunctionContext == NULL);
-	ASSERT(HandleListEntry != NULL) {
+	if(HandleListEntry == NULL) {
 		return STATUS_INVALID_PARAMETER1;
 	}
 
