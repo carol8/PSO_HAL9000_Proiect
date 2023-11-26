@@ -716,10 +716,7 @@ DeallocHandleTableEntry(
 )
 {
     ASSERT(FunctionContext == NULL);
-
-	if (HandleListEntry == NULL) {
-		return STATUS_INVALID_PARAMETER1;
-	}
+    ASSERT(HandleListEntry != NULL);
 
     PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(HandleListEntry, HANDLE_TABLE_ENTRY, HandleListElem);
 
