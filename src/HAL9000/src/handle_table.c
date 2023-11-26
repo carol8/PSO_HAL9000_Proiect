@@ -33,12 +33,18 @@ HandleListInsertHandle(
 	}
 	else
 	{
-		HANDLE_TABLE_ENTRY newEntry;
-		newEntry.Handle = Handle;
-		newEntry.Type = HandleType;
-		newEntry.Reserved = 1;
+		PHANDLE_TABLE_ENTRY newEntry = ExAllocatePoolWithTag(PoolAllocateZeroMemory, sizeof(HANDLE_TABLE_ENTRY), HEAP_PROCESS_TAG, 0);
+		if (newEntry == NULL) {
+			LOG_FUNC_ERROR_ALLOC("ExAllocatePoolWithTag", sizeof(HANDLE_TABLE_ENTRY));
+			index = UM_INVALID_HANDLE_VALUE;
+		}
+		else {
+			newEntry->Handle = Handle;
+			newEntry->Type = HandleType;
+			newEntry->Reserved = 1;
 
-		InsertTailList(handleTable, &newEntry.HandleListElem);
+			InsertTailList(handleTable, &newEntry->HandleListElem);
+		}
 	}
 
 	LockRelease(&pProcess->HandleListLock, dummy);
