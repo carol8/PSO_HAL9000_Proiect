@@ -709,18 +709,22 @@ ProcessRemoveThreadFromList(
 }
 
 static
-void
+STATUS
 DeallocHandleTableEntry(
     IN      PLIST_ENTRY         HandleListEntry,
     IN_OPT  PVOID               FunctionContext
 )
 {
     ASSERT(FunctionContext == NULL);
-    ASSERT(HandleListEntry != NULL);
+	ASSERT(HandleListEntry != NULL) {
+		return STATUS_INVALID_PARAMETER1;
+	}
 
     PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(HandleListEntry, HANDLE_TABLE_ENTRY, HandleListElem);
 
     ExFreePoolWithTag(entry, HEAP_PROCESS_TAG);
+
+    return STATUS_SUCCESS;
 }
 
 static
