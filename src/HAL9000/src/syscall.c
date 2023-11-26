@@ -7,6 +7,9 @@
 #include "mmu.h"
 #include "process_internal.h"
 #include "dmp_cpu.h"
+#include "handle_table.h"
+#include "iomu.h"
+#include "thread.h"
 
 extern void SyscallEntry();
 
@@ -67,9 +70,27 @@ SyscallHandler(
         case SyscallIdIdentifyVersion:
             status = SyscallValidateInterface((SYSCALL_IF_VERSION)*pSyscallParameters);
             break;
+        case SyscallIdFileWrite:
+            status = SyscallFileWrite((UM_HANDLE)pSyscallParameters[0], (PVOID)pSyscallParameters[1], (QWORD)pSyscallParameters[2], (QWORD*)pSyscallParameters[3]);
+            break;
         case SyscallIdProcessExit:
 			status = SyscallProcessExit((STATUS) pSyscallParameters[0]);
 			break;
+        case SyscallIdProcessCreate:
+            status = SyscallProcessCreate((char*)pSyscallParameters[0], (QWORD)pSyscallParameters[1], (char*)pSyscallParameters[2], (QWORD)pSyscallParameters[3], (UM_HANDLE*)pSyscallParameters[4]);
+            break;
+        case SyscallIdProcessGetPid:
+            status = SyscallProcessGetPid((UM_HANDLE)pSyscallParameters[0], (PID*)pSyscallParameters[1]);
+            break;
+        case SyscallIdProcessWaitForTermination:
+            status = SyscallProcessWaitForTermination((UM_HANDLE)pSyscallParameters[0], (STATUS*)pSyscallParameters[1]);
+            break;
+        case SyscallIdProcessCloseHandle:
+            status = SyscallProcessCloseHandle((UM_HANDLE)pSyscallParameters[0]);
+            break;
+        case SyscallIdThreadExit:
+            status = SyscallThreadExit((STATUS)pSyscallParameters[0]);
+            break;
         default:
             LOG_ERROR("Unimplemented syscall called from User-space!\n");
             status = STATUS_UNSUPPORTED;
@@ -178,4 +199,136 @@ SyscallProcessExit(
 {
     ProcessTerminate(GetCurrentProcess());
     return ExitStatus;
+}
+
+STATUS
+SyscallFileWrite(
+    IN  UM_HANDLE   FileHandle, 
+    IN_READS_BYTES(BytesToWrite) 
+        PVOID       Buffer, 
+    IN  QWORD       BytesToWrite, 
+    OUT QWORD*      BytesWritten
+) 
+{
+	UNREFERENCED_PARAMETER(BytesToWrite);
+	UNREFERENCED_PARAMETER(FileHandle);
+
+	*BytesWritten = BytesToWrite;
+
+	LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
+
+	return STATUS_SUCCESS;
+}
+
+STATUS
+SyscallProcessCreate(
+    IN_READS_Z(PathLength)
+                char*               ProcessPath,
+    IN          QWORD               PathLength,
+    IN_READS_OPT_Z(ArgLength)
+                char*               Arguments,
+    IN          QWORD               ArgLength,
+    OUT         UM_HANDLE*          ProcessHandle
+) 
+{
+    PPROCESS pProcess;
+    STATUS status;
+    char FullProcessPath[260] = { 0 };
+    *ProcessHandle = UM_INVALID_HANDLE_VALUE;
+
+    UNREFERENCED_PARAMETER(ArgLength);
+
+    status = MmuIsBufferValid((const PVOID) ProcessPath, PathLength, PAGE_RIGHTS_READ, GetCurrentProcess());
+    if (status != STATUS_SUCCESS) {
+        return status;
+    }
+
+    if (2 <= PathLength && ProcessPath[1] == ':') {
+        sprintf(FullProcessPath, "%s", ProcessPath);
+    }
+    else {
+        sprintf(FullProcessPath, "%sApplications\\%s", IomuGetSystemPartitionPath(), ProcessPath);
+    }
+        
+    status = ProcessCreate(FullProcessPath, Arguments, &pProcess);
+    if (status == STATUS_SUCCESS) {
+        LOG("Inserting process with handle 0x%X\n", pProcess);
+        *ProcessHandle = HandleListInsertHandle(pProcess, PROCESS_HANDLE);
+    }
+
+    return status;
+}
+
+STATUS
+SyscallProcessGetPid(
+    IN_OPT      UM_HANDLE           ProcessHandle,
+    OUT         PID*                ProcessId
+)
+{
+    *ProcessId = GetCurrentProcess()->Id;
+
+    if(ProcessHandle != UM_INVALID_HANDLE_VALUE) {
+        PPROCESS Process = (PPROCESS)HandleListGetHandleByIndex(ProcessHandle, PROCESS_HANDLE);
+        if (Process != NULL) {
+            *ProcessId = Process->Id;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+STATUS
+SyscallProcessWaitForTermination(
+    IN          UM_HANDLE           ProcessHandle,
+    OUT         STATUS*             TerminationStatus
+)   
+{
+    LOG("Waiting for termination of process with handle: %d\n", ProcessHandle);
+
+    if (ProcessHandle == UM_INVALID_HANDLE_VALUE) {
+        return STATUS_INVALID_PARAMETER1;
+    }
+
+    PPROCESS Process = (PPROCESS)HandleListGetHandleByIndex(ProcessHandle, PROCESS_HANDLE);
+
+    LOG("Process found with handle 0x%X\n", Process);
+
+    if (Process == NULL) {
+        return STATUS_ELEMENT_NOT_FOUND;
+    }
+
+    ProcessWaitForTermination(Process, TerminationStatus);
+    
+    return STATUS_SUCCESS;
+}
+
+
+STATUS
+SyscallProcessCloseHandle(
+    IN          UM_HANDLE           ProcessHandle
+) 
+{
+	if (ProcessHandle == UM_INVALID_HANDLE_VALUE) {
+		return STATUS_INVALID_PARAMETER1;
+	}
+
+    PPROCESS Process = (PPROCESS)HandleListGetHandleByIndex(ProcessHandle, PROCESS_HANDLE);
+
+	if (Process == NULL) {
+		return STATUS_ELEMENT_NOT_FOUND;
+	}
+
+    ProcessCloseHandle(Process);
+
+    return STATUS_SUCCESS;
+}
+
+STATUS
+SyscallThreadExit(
+    IN      STATUS                  ExitStatus
+)
+{
+    ThreadExit(ExitStatus);
+
+    return STATUS_SUCCESS;
 }
