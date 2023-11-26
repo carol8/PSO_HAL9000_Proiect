@@ -7,6 +7,7 @@
 #include "bitmap.h"
 #include "pte.h"
 #include "pe_exports.h"
+#include "handle_table.h"
 
 typedef struct _PROCESS_SYSTEM_DATA
 {
@@ -709,12 +710,31 @@ ProcessRemoveThreadFromList(
 
 static
 void
+DeallocHandleTableEntry(
+    IN      PLIST_ENTRY         HandleListEntry,
+    IN_OPT  PVOID               FunctionContext
+)
+{
+    ASSERT(FunctionContext == NULL);
+
+	if (HandleListEntry == NULL) {
+		return STATUS_INVALID_PARAMETER1;
+	}
+
+    PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(HandleListEntry, HANDLE_TABLE_ENTRY, HandleListElem);
+
+    ExFreePoolWithTag(entry, HEAP_PROCESS_TAG);
+}
+
+static
+void
 _ProcessDestroy(
     IN      PVOID                   Object,
     IN_OPT  PVOID                   Context
     )
 {
     PPROCESS Process = (PPROCESS) CONTAINING_RECORD(Object, PROCESS, RefCnt);
+    INTR_STATE dummyState;
 
     ASSERT(NULL != Process);
     ASSERT(!ProcessIsSystem(Process));
@@ -732,6 +752,10 @@ _ProcessDestroy(
     MutexAcquire(&m_processData.ProcessListLock);
     RemoveEntryList(&Process->NextProcess);
     MutexRelease(&m_processData.ProcessListLock);
+
+    LockAcquire(&Process->HandleListLock, &dummyState);
+    ForEachElementExecute(&Process->HandleListHead, DeallocHandleTableEntry, NULL, 1);
+    LockRelease(&Process->HandleListLock, dummyState);
 
     if (NULL != Process->FullCommandLine)
     {
