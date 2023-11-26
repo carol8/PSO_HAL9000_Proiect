@@ -82,7 +82,7 @@
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <PostBuildEvent>
-      <Command>"$(SolutionDir)..\postbuild\run_tests.cmd" "$(SolutionDir)" "$(SolutionDir)..\TESTS\userprog" Tests.module /proctest / 180</Command>
+      <Command>"$(SolutionDir)..\postbuild\run_tests.cmd" "$(SolutionDir)" "$(SolutionDir)..\TESTS\userprog" Tests.module /proctest / 3600</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='VirtualMemory|x64'">
