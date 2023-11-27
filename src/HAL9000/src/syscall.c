@@ -70,6 +70,15 @@ SyscallHandler(
         case SyscallIdIdentifyVersion:
             status = SyscallValidateInterface((SYSCALL_IF_VERSION)*pSyscallParameters);
             break;
+        case SyscallIdFileCreate:
+            status = SyscallFileCreate((char*)pSyscallParameters[0], (QWORD)pSyscallParameters[1], (BOOLEAN)pSyscallParameters[2], (BOOLEAN)pSyscallParameters[3], (UM_HANDLE*)pSyscallParameters[4]);
+            break;
+        case SyscallIdFileClose:
+            status = SyscallFileClose((UM_HANDLE)pSyscallParameters[0]);
+            break;
+        case SyscallIdFileRead:
+            status = SyscallFileRead((UM_HANDLE)pSyscallParameters[0], (PVOID)pSyscallParameters[1], (QWORD)pSyscallParameters[2], (QWORD*)pSyscallParameters[3]);
+            break;
         case SyscallIdFileWrite:
             status = SyscallFileWrite((UM_HANDLE)pSyscallParameters[0], (PVOID)pSyscallParameters[1], (QWORD)pSyscallParameters[2], (QWORD*)pSyscallParameters[3]);
             break;
@@ -129,6 +138,7 @@ SyscallUninitSystem(
     void
     )
 {
+
     return STATUS_SUCCESS;
 }
 
@@ -192,32 +202,187 @@ SyscallValidateInterface(
     return STATUS_SUCCESS;
 }
 
-STATUS 
-SyscallProcessExit(
-    IN STATUS ExitStatus
+STATUS
+SyscallFileCreate(
+    IN_READS_Z(PathLength)
+    char* Path,
+    IN          QWORD                   PathLength,
+    IN          BOOLEAN                 Directory,
+    IN          BOOLEAN                 Create,
+    OUT         UM_HANDLE* FileHandle
 )
 {
-    ProcessTerminate(GetCurrentProcess());
-    return ExitStatus;
+	PFILE_OBJECT PFile;
+	STATUS status = STATUS_SUCCESS;
+	char FullFilePath[260] = { 0 };
+	*FileHandle = UM_INVALID_HANDLE_VALUE;
+
+	status = MmuIsBufferValid((const PVOID)Path, PathLength, PAGE_RIGHTS_READ, GetCurrentProcess());
+	if (status != STATUS_SUCCESS) {
+		return status;
+	}
+
+	if (2 <= PathLength && Path[1] == ':') {
+		sprintf(FullFilePath, "%s", Path);
+	}
+	else {
+		sprintf(FullFilePath, "%s%s", IomuGetSystemPartitionPath(), Path);
+	}
+
+	status = IoCreateFile(&PFile, FullFilePath, Directory, Create, 0);
+	if (status == STATUS_SUCCESS) {
+		LOG("Inserting file with handle 0x%X\n", PFile);
+		*FileHandle = HandleListInsertHandle(PFile, FILE_HANDLE);
+	}
+
+	return status;
+}
+
+
+static BOOLEAN isStdoutClosed = 0;
+STATUS
+SyscallFileClose(
+    IN          UM_HANDLE               FileHandle
+)
+{
+	if (FileHandle == UM_INVALID_HANDLE_VALUE) {
+		return STATUS_INVALID_PARAMETER1;
+	}
+
+    if (FileHandle == UM_FILE_HANDLE_STDOUT) {
+        if (!isStdoutClosed) {
+            isStdoutClosed = 1;
+            return STATUS_SUCCESS;
+        }
+        return STATUS_ELEMENT_NOT_FOUND;
+    }
+
+	PFILE_OBJECT File = (PFILE_OBJECT)HandleListGetHandleByIndex(FileHandle, FILE_HANDLE);
+	if (File == NULL) {
+		return STATUS_ELEMENT_NOT_FOUND;
+	}
+
+	IoCloseFile(File);
+
+	HandleListRemoveHandle(FileHandle, FILE_HANDLE);
+
+	return STATUS_SUCCESS;
 }
 
 STATUS
+SyscallFileRead(
+    IN  UM_HANDLE                   FileHandle,
+    OUT_WRITES_BYTES(BytesToRead)
+    PVOID                       Buffer,
+    IN  QWORD                       BytesToRead,
+    OUT QWORD* BytesRead
+)
+{
+    LOG("Handle received by SyscallFileRead: %d\n", FileHandle);
+	if (FileHandle == UM_INVALID_HANDLE_VALUE || FileHandle == UM_FILE_HANDLE_STDOUT) {
+		return STATUS_INVALID_PARAMETER1;
+	}
+
+	STATUS status = MmuIsBufferValid(Buffer, BytesToRead, PAGE_RIGHTS_WRITE, GetCurrentProcess());
+    if (status != STATUS_SUCCESS) {
+        *BytesRead = 0;
+        return status;
+    }
+
+	PFILE_OBJECT File = (PFILE_OBJECT)HandleListGetHandleByIndex(FileHandle, FILE_HANDLE);
+
+	if (File == NULL) {
+        *BytesRead = 0;
+		return STATUS_ELEMENT_NOT_FOUND;
+	}
+
+    QWORD fileOffset = 0;
+    IoReadFile(File, BytesToRead, &fileOffset, Buffer, BytesRead);
+
+    return STATUS_SUCCESS;
+}
+
+// SyscallIdFileWrite
+//******************************************************************************
+// Function:     SyscallFileWrite
+// Description:  Writes the content of Buffer into the FileHandle file.
+// Returns:      STATUS
+// Parameter:    IN UM_HANDLE FileHandle
+// Parameter:    IN_READS_BYTES(BytesToWrite) PVOID Buffer
+// Parameter:    IN QWORD BytesToWrite
+// Parameter:    OUT QWORD* BytesWritten
+//******************************************************************************
+STATUS
 SyscallFileWrite(
-    IN  UM_HANDLE   FileHandle, 
-    IN_READS_BYTES(BytesToWrite) 
-        PVOID       Buffer, 
-    IN  QWORD       BytesToWrite, 
-    OUT QWORD*      BytesWritten
+    IN  UM_HANDLE                   FileHandle,
+    IN_READS_BYTES(BytesToWrite)
+    PVOID                       Buffer,
+    IN  QWORD                       BytesToWrite,
+    OUT QWORD* BytesWritten
 ) 
 {
-	UNREFERENCED_PARAMETER(BytesToWrite);
-	UNREFERENCED_PARAMETER(FileHandle);
+	if (FileHandle == UM_INVALID_HANDLE_VALUE) {
+		return STATUS_INVALID_PARAMETER1;
+	}
 
-	*BytesWritten = BytesToWrite;
+    if (FileHandle == UM_FILE_HANDLE_STDOUT) {
+        if (!isStdoutClosed) {
+            *BytesWritten = BytesToWrite;
 
-	LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
+            LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
+
+            return STATUS_SUCCESS;
+        }
+        else {
+			return STATUS_ELEMENT_NOT_FOUND;
+        }
+    }
+
+	STATUS status = MmuIsBufferValid(Buffer, BytesToWrite, PAGE_RIGHTS_READ, GetCurrentProcess());
+	if (status != STATUS_SUCCESS) {
+		*BytesWritten = 0;
+		return status;
+	}
+
+	PFILE_OBJECT File = (PFILE_OBJECT)HandleListGetHandleByIndex(FileHandle, FILE_HANDLE);
+
+	if (File == NULL) {
+		*BytesWritten = 0;
+		return STATUS_ELEMENT_NOT_FOUND;
+	}
+
+	QWORD fileOffset = 0;
+	IoReadFile(File, BytesToWrite, &fileOffset, Buffer, BytesWritten);
 
 	return STATUS_SUCCESS;
+}
+
+//STATUS
+//SyscallFileWrite(
+//	IN  UM_HANDLE   FileHandle,
+//	IN_READS_BYTES(BytesToWrite)
+//	PVOID       Buffer,
+//	IN  QWORD       BytesToWrite,
+//	OUT QWORD* BytesWritten
+//)
+//{
+//	UNREFERENCED_PARAMETER(BytesToWrite);
+//	UNREFERENCED_PARAMETER(FileHandle);
+//
+//	*BytesWritten = BytesToWrite;
+//
+//	LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
+//
+//	return STATUS_SUCCESS;
+//}
+
+STATUS
+SyscallProcessExit(
+	IN STATUS ExitStatus
+)
+{
+	ProcessTerminate(GetCurrentProcess());
+	return ExitStatus;
 }
 
 STATUS
@@ -242,6 +407,12 @@ SyscallProcessCreate(
     if (status != STATUS_SUCCESS) {
         return status;
     }
+
+    status = MmuIsBufferValid((const PVOID)Arguments, ArgLength, PAGE_RIGHTS_READ, GetCurrentProcess());
+    if (ArgLength != 0 && status != STATUS_SUCCESS) {
+        return status;
+    }
+    LOG("Arguments: %s\n", Arguments);
 
     if (2 <= PathLength && ProcessPath[1] == ':') {
         sprintf(FullProcessPath, "%s", ProcessPath);
@@ -319,6 +490,8 @@ SyscallProcessCloseHandle(
 	}
 
     ProcessCloseHandle(Process);
+
+    HandleListRemoveHandle(ProcessHandle, PROCESS_HANDLE);
 
     return STATUS_SUCCESS;
 }

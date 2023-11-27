@@ -300,6 +300,7 @@ ProcessCreate(
             // we return the process pointer and we expect an explicit call to ProcessCloseHandle
             // to be able to destroy the object (i.e. for its ref count to reach zero)
             _ProcessReference(pProcess);
+
             *Process = pProcess;
         }
     }
