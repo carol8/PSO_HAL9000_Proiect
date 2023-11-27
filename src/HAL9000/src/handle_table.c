@@ -16,7 +16,7 @@ HandleListInsertHandle(
 
 	LockAcquire(&pProcess->HandleListLock, &dummy);
 
-	LOG("Inserting handle 0x%X with type %d into the table\n", Handle, HandleType);
+	LOG_TRACE_USERMODE("Inserting handle 0x%X with type %d into the table\n", Handle, HandleType);
 
 	for (it = handleTable->Flink, index = 0;
 		it != handleTable;
@@ -27,9 +27,9 @@ HandleListInsertHandle(
 			break;
 	}
 
-	LOG("Handle index: %d\n", index);
+	LOG_TRACE_USERMODE("Handle index: %d\n", index);
 	if (it != handleTable) {
-		LOG("Inserted onto existing allocated space\n", index);
+		LOG_TRACE_USERMODE("Inserted onto existing allocated space\n", index);
 		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
 		entry->Reserved = 1;
 		entry->Type = HandleType;
@@ -37,14 +37,14 @@ HandleListInsertHandle(
 	}
 	else
 	{
-		LOG("Allocating new space for handle entry...\n", index);
+		LOG_TRACE_USERMODE("Allocating new space for handle entry...\n", index);
 		PHANDLE_TABLE_ENTRY newEntry = ExAllocatePoolWithTag(PoolAllocateZeroMemory, sizeof(HANDLE_TABLE_ENTRY), HEAP_PROCESS_TAG, 0);
 		if (newEntry == NULL) {
 			LOG_FUNC_ERROR_ALLOC("ExAllocatePoolWithTag", sizeof(HANDLE_TABLE_ENTRY));
 			index = UM_INVALID_HANDLE_VALUE;
 		}
 		else {
-			LOG("Allocated new space at address 0x%X\n", newEntry);
+			LOG_TRACE_USERMODE("Allocated new space at address 0x%X\n", newEntry);
 			newEntry->Handle = Handle;
 			newEntry->Type = HandleType;
 			newEntry->Reserved = 1;
@@ -72,29 +72,29 @@ HandleListGetHandleByIndex(
 
 	LockAcquire(&pProcess->HandleListLock, &dummy);
 
-	LOG("Getting handle for index %d from the table\n", Handle);
+	LOG_TRACE_USERMODE("Getting handle for index %d from the table\n", Handle);
 
 	for (it = handleTable->Flink, index = 0;
 		it != handleTable && index < Handle;
 		it = it->Flink, index++);
 
 	if (it != handleTable) {
-		LOG("Searching stopped because we reached the correct index!\n");
+		LOG_TRACE_USERMODE("Searching stopped because we reached the correct index!\n");
 		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
-		LOG("Reserved byte: expected 1, got %d\n", entry->Reserved);
-		LOG("Handle type: expected %d, got %d\n", HandleType, entry->Type);
+		LOG_TRACE_USERMODE("Reserved byte: expected 1, got %d\n", entry->Reserved);
+		LOG_TRACE_USERMODE("Handle type: expected %d, got %d\n", HandleType, entry->Type);
 		if (entry->Reserved == 1 && entry->Type == HandleType) {
-			LOG("Handle of correct type found at index %d with address 0x%X\n", index, entry->Handle);
+			LOG_TRACE_USERMODE("Handle of correct type found at index %d with address 0x%X\n", index, entry->Handle);
 			returnValue = entry->Handle;
 		}
 	}
 	else {
-		LOG("Searching stopped because we reached the end of the list!\n");
+		LOG_TRACE_USERMODE("Searching stopped because we reached the end of the list!\n");
 	}
 
 	LockRelease(&pProcess->HandleListLock, dummy);
 
-	LOG("Found handle address: 0x%X\n", returnValue);
+	LOG_TRACE_USERMODE("Found handle address: 0x%X\n", returnValue);
 
 	return returnValue;
 }
@@ -113,17 +113,17 @@ HandleListRemoveHandle(
 
 	LockAcquire(&pProcess->HandleListLock, &dummy);
 
-	LOG("Removing handle from index %d from the table\n", Handle);
+	LOG_TRACE_USERMODE("Removing handle from index %d from the table\n", Handle);
 
 	for (it = handleTable->Flink, index = 0;
 		it != handleTable && index < Handle;
 		it = it->Flink, index++);
 
 	if (it != handleTable) {
-		LOG("Entry found at index %d\n", index);
+		LOG_TRACE_USERMODE("Entry found at index %d\n", index);
 		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
 		if (entry->Type == HandleType) {
-			LOG("Entry deleted.\n");
+			LOG_TRACE_USERMODE("Entry deleted.\n");
 			entry->Reserved = 0;
 			status = STATUS_SUCCESS;
 		}
