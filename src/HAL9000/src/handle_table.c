@@ -71,7 +71,7 @@ HandleListGetHandleByIndex(
 	PVOID returnValue = 0;
 
 	LockAcquire(&pProcess->HandleListLock, &dummy);
-
+  
 	LOG_TRACE_USERMODE("Getting handle for index %d from the table\n", Handle);
 
 	for (it = handleTable->Flink, index = 0;
