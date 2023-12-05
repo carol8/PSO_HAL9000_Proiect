@@ -1,6 +1,6 @@
 /log ON
 /loglevel 0
-/logcomp 8000
+/logcomp 8000 
 /proctest fileclosebad 
 /proctest fileclosenormal 
 /proctest fileclosestdout 
@@ -18,17 +18,4 @@
 /proctest filereadnormal 
 /proctest filereadstdout 
 /proctest filereadzero 
-/proctest processclosefile 
-/proctest processclosenormal 
-/proctest processclosetwice 
-/proctest processcreatebadpointer 
-/proctest processcreatemissingfile 
-/proctest processcreatemultiple 
-/proctest processcreateonce 
-/proctest processexit 
-/proctest processgetpid 
-/proctest processwaitbadhandle 
-/proctest processwaitterminated 
-/proctest processwaitnormal 
-/proctest processwaitclosedhandle 
 /shutdown

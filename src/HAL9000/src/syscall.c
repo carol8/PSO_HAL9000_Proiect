@@ -243,12 +243,23 @@ SyscallFileClose(
 	IN          UM_HANDLE               FileHandle
 )
 {
+	INTR_STATE dummy;
+
 	if (FileHandle == UM_INVALID_HANDLE_VALUE) {
 		return STATUS_INVALID_PARAMETER1;
 	}
-
+	LOG_TRACE_USERMODE("Handle value: 0x%X\n", FileHandle);
 	if (FileHandle == UM_FILE_HANDLE_STDOUT) {
-		return STATUS_ELEMENT_NOT_FOUND;
+		PPROCESS PProcess = GetCurrentProcess();
+		LockAcquire(&PProcess->IsStdoutFileOpenLock, &dummy);
+		LOG_TRACE_USERMODE("Is stdout open: %d\n",PProcess->IsStdoutFileOpen);
+		if (!PProcess->IsStdoutFileOpen) {
+			LockRelease(&PProcess->IsStdoutFileOpenLock, dummy);
+			return STATUS_ELEMENT_NOT_FOUND;
+		}
+		PProcess->IsStdoutFileOpen = FALSE;
+		LockRelease(&PProcess->IsStdoutFileOpenLock, dummy);
+		return STATUS_SUCCESS;
 	}
 
 	PFILE_OBJECT File = (PFILE_OBJECT)HandleListGetHandleByIndex(FileHandle, FILE_HANDLE);
@@ -296,30 +307,32 @@ SyscallFileRead(
 	return STATUS_SUCCESS;
 }
 
-// SyscallIdFileWrite
-//******************************************************************************
-// Function:     SyscallFileWrite
-// Description:  Writes the content of Buffer into the FileHandle file.
-// Returns:      STATUS
-// Parameter:    IN UM_HANDLE FileHandle
-// Parameter:    IN_READS_BYTES(BytesToWrite) PVOID Buffer
-// Parameter:    IN QWORD BytesToWrite
-// Parameter:    OUT QWORD* BytesWritten
-//******************************************************************************
 STATUS
 SyscallFileWrite(
 	IN  UM_HANDLE                   FileHandle,
 	IN_READS_BYTES(BytesToWrite)
-	PVOID                       Buffer,
+	PVOID							Buffer,
 	IN  QWORD                       BytesToWrite,
 	OUT QWORD* BytesWritten
 )
 {
+	INTR_STATE dummy;
+
 	if (FileHandle == UM_INVALID_HANDLE_VALUE) {
 		return STATUS_INVALID_PARAMETER1;
 	}
 
 	if (FileHandle == UM_FILE_HANDLE_STDOUT) {
+		PPROCESS PProcess = GetCurrentProcess();
+		PProcess->IsStdoutFileOpenLock;
+		LockAcquire(&PProcess->IsStdoutFileOpenLock, &dummy);
+		if (!PProcess->IsStdoutFileOpen) {
+			LockRelease(&PProcess->IsStdoutFileOpenLock, dummy);
+			*BytesWritten = BytesToWrite;
+			return STATUS_SUCCESS;
+		}
+		LockRelease(&PProcess->IsStdoutFileOpenLock, dummy);
+
 		*BytesWritten = BytesToWrite;
 
 		LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
@@ -341,29 +354,10 @@ SyscallFileWrite(
 	}
 
 	QWORD fileOffset = 0;
-	IoReadFile(File, BytesToWrite, &fileOffset, Buffer, BytesWritten);
+	IoWriteFile(File, BytesToWrite, &fileOffset, Buffer, BytesWritten);
 
 	return STATUS_SUCCESS;
 }
-
-//STATUS
-//SyscallFileWrite(
-//	IN  UM_HANDLE   FileHandle,
-//	IN_READS_BYTES(BytesToWrite)
-//	PVOID       Buffer,
-//	IN  QWORD       BytesToWrite,
-//	OUT QWORD* BytesWritten
-//)
-//{
-//	UNREFERENCED_PARAMETER(BytesToWrite);
-//	UNREFERENCED_PARAMETER(FileHandle);
-//
-//	*BytesWritten = BytesToWrite;
-//
-//	LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
-//
-//	return STATUS_SUCCESS;
-//}
 
 STATUS
 SyscallProcessExit(
