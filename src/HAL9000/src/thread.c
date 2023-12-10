@@ -374,7 +374,7 @@ ThreadCreateEx(
             pThread->UserStack = (PVOID) PtrDiff(pThread->UserStack, SHADOW_STACK_SIZE + sizeof(PVOID));
         }
 
-        pStartFunction = (PVOID) (bProcessIniialThread ? Process->HeaderInfo->Preferred.AddressOfEntryPoint : Function);
+		pStartFunction = (PVOID)(bProcessIniialThread ? Process->HeaderInfo->Preferred.AddressOfEntryPoint : Function);
         firstArg       = (QWORD) (bProcessIniialThread ? Process->NumberOfArguments : (QWORD) Context);
         secondArg      = (QWORD) (bProcessIniialThread ? PtrOffset(pThread->UserStack, SHADOW_STACK_SIZE + sizeof(PVOID)) : 0);
     }
@@ -946,11 +946,84 @@ _ThreadSetupMainThreadUserStack(
     IN      PPROCESS            Process
     )
 {
+	LOG("_ThreadSetupMainThreadUserStack");
+
     ASSERT(InitialStack != NULL);
     ASSERT(ResultingStack != NULL);
     ASSERT(Process != NULL);
 
-    *ResultingStack = (PVOID)PtrDiff(InitialStack, SHADOW_STACK_SIZE + sizeof(PVOID));
+	//*ResultingStack = InitialStack;
+
+	//PVOID UserStack;
+	//PVOID KernerlStack;
+
+	//char* FullCommandLine = Process->FullCommandLine;
+	//QWORD NumberOfArguments = Process->NumberOfArguments;
+
+	//MmuGetSystemVirtualAddressForUserBuffer(
+	//	(PVOID)PtrDiff(InitialStack, STACK_DEFAULT_SIZE),
+	//	STACK_DEFAULT_SIZE,
+	//	PAGE_RIGHTS_READ,
+	//	Process,
+	//	&KernerlStack);
+
+	//char* InitialKernelStack = (char*)KernerlStack;
+	//KernerlStack = (char*)KernerlStack + STACK_DEFAULT_SIZE;
+	//UserStack = InitialStack;
+	//cl_memzero(InitialKernelStack, STACK_DEFAULT_SIZE);
+
+	//LOG("_ThreadSetupMainThreadUserStackLab");
+
+	//// push arguments on stack
+	//for (QWORD i = 0; i < NumberOfArguments; i++) {
+	//	char* argument = FullCommandLine;
+
+	//	QWORD argumentLength = strlen(argument);
+	//	QWORD argumentSize = argumentLength * sizeof(char);
+
+	//	UserStack = (PVOID)PtrDiff(UserStack, (PBYTE)&argumentSize);
+
+	//	cl_memcpy(UserStack, argument, argumentSize);
+
+	//	FullCommandLine += argumentLength;
+	//}
+	//LOG("_ThreadSetupMainThreadUserStackArgs");
+
+	//// align stack
+	////QWORD alignmentOffset = (QWORD)UserStack % sizeof(PVOID);
+	////UserStack = (PVOID)PtrDiff(UserStack, alignmentOffset);
+	////KernerlStack = (PVOID)PtrDiff(KernerlStack, alignmentOffset);
+	////cl_memzero(UserStack, alignmentOffset);
+	//LOG("_ThreadSetupMainThreadUserStackAllign");
+
+	//// push argument addresses on stack
+	//for (QWORD i = 0; i < NumberOfArguments; i++) {
+	//	char* argument = FullCommandLine;
+
+	//	QWORD argumentLength = strlen(argument);
+	//	//QWORD argumentSize = argumentLength * sizeof(char);
+
+	//	UserStack = (PVOID)PtrDiff(UserStack, sizeof(PVOID));
+
+	//	cl_memcpy(UserStack, &argument, sizeof(PVOID));
+
+	//	FullCommandLine += argumentLength;
+	//}
+	//LOG("_ThreadSetupMainThreadUserAdr");
+
+	//// push return address on stack
+	//QWORD RetAddress = 0xdeadc0de;
+	//UserStack = (PVOID)PtrDiff(UserStack, sizeof(QWORD));
+	//KernerlStack = (PVOID)PtrDiff(KernerlStack, sizeof(QWORD));
+	//cl_memcpy(UserStack, &RetAddress, sizeof(QWORD));
+	//LOG("_ThreadSetupMainThreadUserStackRet");
+
+	//*ResultingStack = UserStack;
+
+	//MmuFreeSystemVirtualAddressForUserBuffer(InitialKernelStack);
+
+	*ResultingStack = (PVOID)PtrDiff(InitialStack, SHADOW_STACK_SIZE + sizeof(PVOID));
+
 
     return STATUS_SUCCESS;
 }
