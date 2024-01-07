@@ -267,23 +267,30 @@ STATUS SyscallThreadCreate(
 
     PPROCESS cProcess = GetCurrentProcess();
 
-    status = MmuIsBufferValid((PVOID)StartFunction, sizeof(StartFunction), PAGE_RIGHTS_EXECUTE, cProcess);
-
-    if (SUCCEEDED(status))
-    {
-		status = ThreadCreateEx("ThreadCreatedBySyscall",
+	if (NULL == StartFunction) {
+		return STATUS_INVALID_PARAMETER1;
+	}
+    if (NULL == ThreadHandle) {
+        return STATUS_INVALID_PARAMETER3;
+    }
+	if (STATUS_SUCCESS != MmuIsBufferValid((PVOID)ThreadHandle, sizeof(UM_HANDLE), PAGE_RIGHTS_WRITE, cProcess)) {
+		return STATUS_UNSUCCESSFUL;
+	}
+		
+    status = ThreadCreateEx("ThreadCreatedBySyscall",
 			ThreadPriorityDefault,
 			StartFunction,
 			Context,
 			&pThread,
 			cProcess
 		);
-    }
 
-    if(SUCCEEDED(status))
+    if (!SUCCEEDED(status))
     {
-        *ThreadHandle = HandleListInsertHandle(pThread, THREAD_HANDLE);
+        return status;
     }
+    
+    *ThreadHandle = HandleListInsertHandle(pThread, THREAD_HANDLE);
 
     return status;
 }
