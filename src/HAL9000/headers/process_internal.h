@@ -66,6 +66,13 @@ typedef struct _PROCESS
 	_Guarded_by_(HandleListLock)
 	LIST_ENTRY HandleListHead;
 
+    // Protect the byte representing the stdout file
+    LOCK IsStdoutFileOpenLock;
+
+	// The stdout file status
+	_Guarded_by_(IsStdoutFileOpenLock)
+	BYTE IsStdoutFileOpen;
+
 } PROCESS, *PPROCESS;
 
 //******************************************************************************
