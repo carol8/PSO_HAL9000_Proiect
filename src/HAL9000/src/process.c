@@ -300,6 +300,7 @@ ProcessCreate(
             // we return the process pointer and we expect an explicit call to ProcessCloseHandle
             // to be able to destroy the object (i.e. for its ref count to reach zero)
             _ProcessReference(pProcess);
+
             *Process = pProcess;
         }
     }
@@ -521,6 +522,9 @@ _ProcessInit(
 
         InitializeListHead(&pProcess->HandleListHead);
         LockInit(&pProcess->HandleListLock);
+
+        pProcess->IsStdoutFileOpen = TRUE;
+        LockInit(&pProcess->IsStdoutFileOpenLock);
     }
     __finally
     {
