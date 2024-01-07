@@ -522,6 +522,8 @@ _ProcessInit(
 
         InitializeListHead(&pProcess->HandleListHead);
         LockInit(&pProcess->HandleListLock);
+        pProcess->IsStdoutFileOpen = TRUE;
+        LockInit(&pProcess->IsStdoutFileOpenLock);
     }
     __finally
     {

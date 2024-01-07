@@ -158,6 +158,12 @@ _IsrExceptionHandler(
             ProcessTerminate(currentProcess);
         }
 
+        if (!GdtIsSegmentPrivileged((WORD)StackPointer->Registers.CS)) {
+            PPROCESS currentProcess = GetCurrentProcess();
+            LOG_ERROR("Exception encountered, terminating process %s", ProcessGetName(currentProcess));
+            ProcessTerminate(currentProcess);
+        }
+
         DumpInterruptStack(StackPointer, ErrorCodeAvailable );
         DumpControlRegisters();
         DumpProcessorState(ProcessorState);

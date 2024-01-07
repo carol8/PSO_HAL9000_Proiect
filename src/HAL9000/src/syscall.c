@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "process_internal.h"
 #include "dmp_cpu.h"
+#include "thread_internal.h"
 #include "handle_table.h"
 #include "iomu.h"
 #include "thread.h"
@@ -99,6 +100,18 @@ SyscallHandler(
 			break;
 		case SyscallIdThreadExit:
 			status = SyscallThreadExit((STATUS)pSyscallParameters[0]);
+			break;
+    case SyscallIdThreadCreate:
+      status = SyscallThreadCreate((PFUNC_ThreadStart)pSyscallParameters[0], (PVOID)pSyscallParameters[1], (UM_HANDLE*)pSyscallParameters[2]);
+			break;
+    case SyscallIdThreadGetTid:
+      status = SyscallThreadGetTid((UM_HANDLE)pSyscallParameters[0], (TID*)pSyscallParameters[1]);
+      break;
+    case SyscallIdThreadWaitForTermination:
+      status = SyscallThreadWaitForTermination((UM_HANDLE)pSyscallParameters[0], (STATUS*)pSyscallParameters[1]);
+      break;
+		case SyscallIdThreadCloseHandle:
+      status = SyscallThreadCloseHandle((UM_HANDLE)pSyscallParameters[0]);
 			break;
 		default:
 			LOG_ERROR("Unimplemented syscall called from User-space!\n");
@@ -243,12 +256,23 @@ SyscallFileClose(
 	IN          UM_HANDLE               FileHandle
 )
 {
+	INTR_STATE dummy;
+
 	if (FileHandle == UM_INVALID_HANDLE_VALUE) {
 		return STATUS_INVALID_PARAMETER1;
 	}
-
+	LOG_TRACE_USERMODE("Handle value: 0x%X\n", FileHandle);
 	if (FileHandle == UM_FILE_HANDLE_STDOUT) {
-		return STATUS_ELEMENT_NOT_FOUND;
+		PPROCESS PProcess = GetCurrentProcess();
+		LockAcquire(&PProcess->IsStdoutFileOpenLock, &dummy);
+		LOG_TRACE_USERMODE("Is stdout open: %d\n",PProcess->IsStdoutFileOpen);
+		if (!PProcess->IsStdoutFileOpen) {
+			LockRelease(&PProcess->IsStdoutFileOpenLock, dummy);
+			return STATUS_ELEMENT_NOT_FOUND;
+		}
+		PProcess->IsStdoutFileOpen = FALSE;
+		LockRelease(&PProcess->IsStdoutFileOpenLock, dummy);
+		return STATUS_SUCCESS;
 	}
 
 	PFILE_OBJECT File = (PFILE_OBJECT)HandleListGetHandleByIndex(FileHandle, FILE_HANDLE);
@@ -296,30 +320,32 @@ SyscallFileRead(
 	return STATUS_SUCCESS;
 }
 
-// SyscallIdFileWrite
-//******************************************************************************
-// Function:     SyscallFileWrite
-// Description:  Writes the content of Buffer into the FileHandle file.
-// Returns:      STATUS
-// Parameter:    IN UM_HANDLE FileHandle
-// Parameter:    IN_READS_BYTES(BytesToWrite) PVOID Buffer
-// Parameter:    IN QWORD BytesToWrite
-// Parameter:    OUT QWORD* BytesWritten
-//******************************************************************************
 STATUS
 SyscallFileWrite(
 	IN  UM_HANDLE                   FileHandle,
 	IN_READS_BYTES(BytesToWrite)
-	PVOID                       Buffer,
+	PVOID							Buffer,
 	IN  QWORD                       BytesToWrite,
 	OUT QWORD* BytesWritten
 )
 {
+	INTR_STATE dummy;
+
 	if (FileHandle == UM_INVALID_HANDLE_VALUE) {
 		return STATUS_INVALID_PARAMETER1;
 	}
 
 	if (FileHandle == UM_FILE_HANDLE_STDOUT) {
+		PPROCESS PProcess = GetCurrentProcess();
+		PProcess->IsStdoutFileOpenLock;
+		LockAcquire(&PProcess->IsStdoutFileOpenLock, &dummy);
+		if (!PProcess->IsStdoutFileOpen) {
+			LockRelease(&PProcess->IsStdoutFileOpenLock, dummy);
+			*BytesWritten = BytesToWrite;
+			return STATUS_SUCCESS;
+		}
+		LockRelease(&PProcess->IsStdoutFileOpenLock, dummy);
+
 		*BytesWritten = BytesToWrite;
 
 		LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
@@ -341,29 +367,10 @@ SyscallFileWrite(
 	}
 
 	QWORD fileOffset = 0;
-	IoReadFile(File, BytesToWrite, &fileOffset, Buffer, BytesWritten);
+	IoWriteFile(File, BytesToWrite, &fileOffset, Buffer, BytesWritten);
 
 	return STATUS_SUCCESS;
 }
-
-//STATUS
-//SyscallFileWrite(
-//	IN  UM_HANDLE   FileHandle,
-//	IN_READS_BYTES(BytesToWrite)
-//	PVOID       Buffer,
-//	IN  QWORD       BytesToWrite,
-//	OUT QWORD* BytesWritten
-//)
-//{
-//	UNREFERENCED_PARAMETER(BytesToWrite);
-//	UNREFERENCED_PARAMETER(FileHandle);
-//
-//	*BytesWritten = BytesToWrite;
-//
-//	LOG("[%s]:[%s]\n", ProcessGetName(NULL), Buffer);
-//
-//	return STATUS_SUCCESS;
-//}
 
 STATUS
 SyscallProcessExit(
@@ -486,10 +493,111 @@ SyscallProcessCloseHandle(
 
 STATUS
 SyscallThreadExit(
-	IN      STATUS                  ExitStatus
+    IN      STATUS                  ExitStatus
 )
 {
-	ThreadExit(ExitStatus);
+    LOG("Syscall Thread Exit");
+    ThreadExit(ExitStatus);
 
-	return STATUS_SUCCESS;
+    return STATUS_SUCCESS;
+}
+
+STATUS SyscallThreadCreate(
+    IN PFUNC_ThreadStart StartFunction,
+    IN_OPT PVOID Context,
+    OUT UM_HANDLE* ThreadHandle
+)
+{
+    PTHREAD pThread = NULL;
+    //PVOID userStack = pThread->UserStack;
+
+    // StartFunction = (PFUNC_ThreadStart)userStack;
+    // Context = (PVOID)((QWORD)userStack + sizeof(PFUNC_ThreadStart));
+
+    //UNREFERENCED_PARAMETER(StartFunction);
+    //UNREFERENCED_PARAMETER(Context);
+
+    //PFUNC_ThreadStart pStartFunction = (PFUNC_ThreadStart)userStack;
+    //PVOID pContext = (PVOID)((QWORD)userStack + sizeof(PFUNC_ThreadStart));
+
+    STATUS status;
+
+
+    PPROCESS cProcess = GetCurrentProcess();
+
+	if (NULL == StartFunction) {
+		return STATUS_INVALID_PARAMETER1;
+	}
+    if (NULL == ThreadHandle) {
+        return STATUS_INVALID_PARAMETER3;
+    }
+	if (STATUS_SUCCESS != MmuIsBufferValid((PVOID)ThreadHandle, sizeof(UM_HANDLE), PAGE_RIGHTS_WRITE, cProcess)) {
+		return STATUS_UNSUCCESSFUL;
+	}
+		
+    status = ThreadCreateEx("ThreadCreatedBySyscall",
+			ThreadPriorityDefault,
+			StartFunction,
+			Context,
+			&pThread,
+			cProcess
+		);
+
+    if (!SUCCEEDED(status))
+    {
+        return status;
+    }
+    
+    *ThreadHandle = HandleListInsertHandle(pThread, THREAD_HANDLE);
+
+    return status;
+}
+
+STATUS
+SyscallThreadGetTid(
+    IN_OPT  UM_HANDLE               ThreadHandle,
+    OUT     TID*                    ThreadId
+)
+{
+    PVOID Handle = HandleListGetHandleByIndex(ThreadHandle, THREAD_HANDLE);
+    if (Handle == 0)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    PTHREAD pThread = (PTHREAD)Handle;
+
+    *ThreadId = pThread->Id;
+
+    return STATUS_SUCCESS;
+}
+
+STATUS
+SyscallThreadWaitForTermination(
+	IN      UM_HANDLE               ThreadHandle,
+	OUT     STATUS*                 TerminationStatus
+)
+{
+    PVOID Handle = HandleListGetHandleByIndex(ThreadHandle, THREAD_HANDLE);
+    if (Handle == 0)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    PTHREAD pThread = (PTHREAD)Handle;
+    ThreadWaitForTermination(pThread, TerminationStatus);
+
+	return *TerminationStatus;
+}
+
+STATUS
+SyscallThreadCloseHandle(
+	IN      UM_HANDLE               ThreadHandle
+)
+{
+	STATUS status;
+
+	status = HandleListRemoveHandle(ThreadHandle, THREAD_HANDLE);
+
+	return status;
 }

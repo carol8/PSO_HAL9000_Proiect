@@ -970,6 +970,8 @@ _ThreadSetupMainThreadUserStack(
     IN      PPROCESS            Process
 )
 {
+	LOG("_ThreadSetupMainThreadUserStack");
+
     ASSERT(InitialStack != NULL);
     ASSERT(ResultingStack != NULL);
     ASSERT(Process != NULL);
