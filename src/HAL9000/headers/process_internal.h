@@ -62,12 +62,12 @@ typedef struct _PROCESS
 	// Protect the per-process handle list
 	LOCK HandleListLock;
 
-	// The list ’s head
+	// The list â€™s head
 	_Guarded_by_(HandleListLock)
 	LIST_ENTRY HandleListHead;
 
-    // Protect the byte representing the stdout file
-    LOCK IsStdoutFileOpenLock;
+  // Protect the byte representing the stdout file
+  LOCK IsStdoutFileOpenLock;
 
 	// The stdout file status
 	_Guarded_by_(IsStdoutFileOpenLock)

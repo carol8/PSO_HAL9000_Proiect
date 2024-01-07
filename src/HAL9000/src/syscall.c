@@ -569,7 +569,7 @@ SyscallThreadGetTid(
 
     *ThreadId = pThread->Id;
 
-	return STATUS_SUCCESS;
+    return STATUS_SUCCESS;
 }
 
 STATUS
