@@ -7,6 +7,7 @@
 #include "bitmap.h"
 #include "pte.h"
 #include "pe_exports.h"
+#include "handle_table.h"
 
 typedef struct _PROCESS_SYSTEM_DATA
 {
@@ -299,6 +300,7 @@ ProcessCreate(
             // we return the process pointer and we expect an explicit call to ProcessCloseHandle
             // to be able to destroy the object (i.e. for its ref count to reach zero)
             _ProcessReference(pProcess);
+
             *Process = pProcess;
         }
     }
@@ -517,6 +519,9 @@ _ProcessInit(
         MutexRelease(&m_processData.ProcessListLock);
 
         LOG_TRACE_PROCESS("Process with PID 0x%X created\n", pProcess->Id);
+
+        InitializeListHead(&pProcess->HandleListHead);
+        LockInit(&pProcess->HandleListLock);
     }
     __finally
     {
@@ -712,6 +717,7 @@ _ProcessDestroy(
     )
 {
     PPROCESS Process = (PPROCESS) CONTAINING_RECORD(Object, PROCESS, RefCnt);
+    //INTR_STATE dummyState;
 
     ASSERT(NULL != Process);
     ASSERT(!ProcessIsSystem(Process));
@@ -729,6 +735,16 @@ _ProcessDestroy(
     MutexAcquire(&m_processData.ProcessListLock);
     RemoveEntryList(&Process->NextProcess);
     MutexRelease(&m_processData.ProcessListLock);
+
+    /*LockAcquire(&Process->HandleListLock, &dummyState);
+    PLIST_ENTRY it = Process->HandleListHead.Flink->Flink;
+    while (it != &Process->HandleListHead) {
+        PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it->Blink, HANDLE_TABLE_ENTRY, HandleListElem);
+        ExFreePoolWithTag(entry, HEAP_PROCESS_TAG);
+    }
+	PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it->Blink, HANDLE_TABLE_ENTRY, HandleListElem);
+	ExFreePoolWithTag(entry, HEAP_PROCESS_TAG);
+    LockRelease(&Process->HandleListLock, dummyState);*/
 
     if (NULL != Process->FullCommandLine)
     {
