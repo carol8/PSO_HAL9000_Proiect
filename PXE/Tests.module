@@ -1,0 +1,19 @@
+/log ON
+/loglevel 0
+/logcomp 8000
+/proctest processclosefile 
+/proctest processclosenormal 
+/proctest processcloseparenthandle 
+/proctest processclosetwice 
+/proctest processcreatebadpointer 
+/proctest processcreatemissingfile 
+/proctest processcreatemultiple 
+/proctest processcreateonce 
+/proctest processcreatewitharguments 
+/proctest processexit 
+/proctest processgetpid 
+/proctest processwaitbadhandle 
+/proctest processwaitclosedhandle 
+/proctest processwaitnormal 
+/proctest processwaitterminated 
+/shutdown

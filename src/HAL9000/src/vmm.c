@@ -10,6 +10,7 @@
 #include "thread_internal.h"
 #include "process_internal.h"
 #include "mdl.h"
+#include "swap.h"
 
 #define VMM_SIZE_FOR_RESERVATION_METADATA            (5*TB_SIZE)
 
@@ -588,7 +589,7 @@ VmmAllocRegionEx(
                 // We will ask for a continuous number of frames, we have no way of
                 // asking for discontinuous frames - even if we call the function multiple
                 // times with 1 frame we probably will receive a continuous mapping because
-                // there is noone else requesting physical frames in the meantime
+                // there is no one else requesting physical frames in the meantime
 
                 ASSERT(alignedSize / PAGE_SIZE <= MAX_DWORD);
                 DWORD noOfFrames = (DWORD)(alignedSize / PAGE_SIZE);
@@ -608,6 +609,10 @@ VmmAllocRegionEx(
                                      Uncacheable,
                                      PagingData
                 );
+
+                for (int i = 0; i < noOfFrames; i++) {
+                    SwapPageListInsert((QWORD)pa + i * PAGE_SIZE, (QWORD)pBaseAddress + i * PAGE_SIZE);
+                }
 
                 // Check if the mapping is backed up by a file
                 if (FileObject != NULL)
@@ -813,6 +818,8 @@ VmmSolvePageFault(
                                  uncacheable,
                                  PagingData
                                  );
+
+            SwapPageListInsert(pa, alignedAddress);
 
             // 3. If the virtual address is backed by a file read its contents
             if (pBackingFile != NULL)

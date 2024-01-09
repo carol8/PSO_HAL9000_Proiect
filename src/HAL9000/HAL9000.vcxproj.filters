@@ -405,6 +405,9 @@
     <ClCompile Include="src\handle_table.c">
       <Filter>Source Files\usermode</Filter>
     </ClCompile>
+    <ClCompile Include="src\swap.c">
+      <Filter>Source Files\core\memory</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\HAL9000.h">
@@ -709,6 +712,9 @@
     </ClInclude>
     <ClInclude Include="headers\handle_table.h">
       <Filter>Header Files\usermode</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\swap.h">
+      <Filter>Header Files\core\memory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

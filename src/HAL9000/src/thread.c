@@ -970,7 +970,7 @@ _ThreadSetupMainThreadUserStack(
     IN      PPROCESS            Process
 )
 {
-	LOG("_ThreadSetupMainThreadUserStack");
+	LOG_TRACE_USERMODE("_ThreadSetupMainThreadUserStack");
 
     ASSERT(InitialStack != NULL);
     ASSERT(ResultingStack != NULL);

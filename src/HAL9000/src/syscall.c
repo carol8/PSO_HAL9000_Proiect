@@ -496,7 +496,7 @@ SyscallThreadExit(
     IN      STATUS                  ExitStatus
 )
 {
-    LOG("Syscall Thread Exit");
+    LOG_TRACE_USERMODE("Syscall Thread Exit");
     ThreadExit(ExitStatus);
 
     return STATUS_SUCCESS;
@@ -525,15 +525,15 @@ STATUS SyscallThreadCreate(
 
     PPROCESS cProcess = GetCurrentProcess();
 
-	if (NULL == StartFunction) {
-		return STATUS_INVALID_PARAMETER1;
-	}
-    if (NULL == ThreadHandle) {
-        return STATUS_INVALID_PARAMETER3;
-    }
-	if (STATUS_SUCCESS != MmuIsBufferValid((PVOID)ThreadHandle, sizeof(UM_HANDLE), PAGE_RIGHTS_WRITE, cProcess)) {
-		return STATUS_UNSUCCESSFUL;
-	}
+	//if (NULL == StartFunction) {
+	//	return STATUS_INVALID_PARAMETER1;
+	//}
+ //   if (NULL == ThreadHandle) {
+ //       return STATUS_INVALID_PARAMETER3;
+ //   }
+	//if (STATUS_SUCCESS != MmuIsBufferValid((PVOID)ThreadHandle, sizeof(UM_HANDLE), PAGE_RIGHTS_WRITE, cProcess)) {
+	//	return STATUS_UNSUCCESSFUL;
+	//}
 		
     status = ThreadCreateEx("ThreadCreatedBySyscall",
 			ThreadPriorityDefault,
@@ -559,6 +559,10 @@ SyscallThreadGetTid(
     OUT     TID*                    ThreadId
 )
 {
+	if (ThreadHandle == UM_INVALID_HANDLE_VALUE) {
+		*ThreadId = GetCurrentThread()->Id;
+		return STATUS_SUCCESS;
+	}
     PVOID Handle = HandleListGetHandleByIndex(ThreadHandle, THREAD_HANDLE);
     if (Handle == 0)
     {

@@ -4,41 +4,15 @@
 #include "bitmap.h"
 #include "synch.h"
 
-typedef struct _MEMORY_REGION_LIST
-{
-    MEMORY_MAP_TYPE     Type;
-    DWORD               NumberOfEntries;
-} MEMORY_REGION_LIST, *PMEMORY_REGION_LIST;
-
-typedef struct _PMM_DATA
-{
-    // Both of the highest physical address values are setup on initialization and
-    // remain unchanged, i.e. if the highest available address becomes later reserved
-    // HighestPhysicalAddressAvailable will not change.
-
-    // This points to the end of the highest physical address available in the system
-    // i.e. this is not reserved and can be used
-    // E.g: if the last available memory region starts at 0xFFFE'0000 and occupies a
-    // page HighestPhysicalAddressAvailable will be 0xFFFE'1000
-    PHYSICAL_ADDRESS    HighestPhysicalAddressAvailable;
-
-    // This includes the memory already reserved in the system, it is greater than or
-    // equal to HighestPhysicalAddressAvailable, depending on the arrangement of
-    // memory in the system.
-    PHYSICAL_ADDRESS    HighestPhysicalAddressPresent;
-
-    // Total size of available memory over 1MB
-    QWORD               PhysicalMemorySize;
-
-    MEMORY_REGION_LIST  MemoryRegionList[MemoryMapTypeMax];
-
-    LOCK                AllocationLock;
-
-    _Guarded_by_(AllocationLock)
-    BITMAP              AllocationBitmap;
-} PMM_DATA, *PPMM_DATA;
-
 static PMM_DATA m_pmmData;
+
+PMM_DATA 
+GetPmmData(
+    void
+)
+{
+    return m_pmmData;
+}
 
 static
 void

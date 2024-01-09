@@ -122,7 +122,7 @@ HandleListRemoveHandle(
 	if (it != handleTable) {
 		LOG_TRACE_USERMODE("Entry found at index %d\n", index);
 		PHANDLE_TABLE_ENTRY entry = CONTAINING_RECORD(it, HANDLE_TABLE_ENTRY, HandleListElem);
-		if (entry->Type == HandleType) {
+		if (entry->Type == HandleType && entry->Reserved) {
 			LOG_TRACE_USERMODE("Entry deleted.\n");
 			entry->Reserved = 0;
 			status = STATUS_SUCCESS;

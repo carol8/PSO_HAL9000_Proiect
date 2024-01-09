@@ -21,6 +21,7 @@
 #include "ex_system.h"
 #include "process_internal.h"
 #include "boot_module.h"
+#include "swap.h"
 
 #define NO_OF_TSS_STACKS             7
 STATIC_ASSERT(NO_OF_TSS_STACKS <= NO_OF_IST);
@@ -312,6 +313,15 @@ SystemInit(
     }
 
     LOGL("Network stack successfully initialized\n");
+
+    status = SwapSystemInit();
+	if (!SUCCEEDED(status))
+	{
+		LOG_FUNC_ERROR("SwapSystemInit", status);
+		return status;
+	}
+
+    LOGL("Swap system successfully initialized\n");
 
     return status;
 }
