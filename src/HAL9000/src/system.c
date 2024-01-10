@@ -72,7 +72,7 @@ SystemInit(
     pCpu = NULL;
 
     LogSystemInit(LogLevelTrace,
-                  LogComponentUserMode,
+                  LogComponentUserMode | LogComponentVmm,
                   TRUE
                   );
 

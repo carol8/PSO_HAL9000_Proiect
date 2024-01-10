@@ -610,8 +610,8 @@ VmmAllocRegionEx(
                                      PagingData
                 );
 
-                for (int i = 0; i < noOfFrames; i++) {
-                    SwapPageListInsert((QWORD)pa + i * PAGE_SIZE, (QWORD)pBaseAddress + i * PAGE_SIZE);
+                for (QWORD i = 0; i < noOfFrames; i++) {
+                    SwapPageListInsert((PHYSICAL_ADDRESS)((QWORD)pa + i * (QWORD)PAGE_SIZE), (PVOID)((QWORD)pBaseAddress + i * (QWORD)PAGE_SIZE));
                 }
 
                 // Check if the mapping is backed up by a file
@@ -731,6 +731,10 @@ VmmFreeRegionEx(
                          alignedSize,
                          Release,
                          PagingData);
+
+		for (QWORD i = alignedSize; i > 0; i -= PAGE_SIZE) {
+            SwapPageListRemove((PVOID)((QWORD)alignedAddress + i));
+		}
     }
 }
 
@@ -805,6 +809,9 @@ VmmSolvePageFault(
 
             // 1. Reserve one frame of physical memory
             pa = PmmReserveMemory(1);
+            if (pa == NULL) {
+                SwapPageOut(&pa);
+            }
             ASSERT(NULL != pa);
 
             alignedAddress = (PVOID)AlignAddressLower(FaultingAddress, PAGE_SIZE);
@@ -839,6 +846,12 @@ VmmSolvePageFault(
 
                 LOGL("Bytes read 0x%X\n", bytesReadFromFile);
                 ASSERT(bytesReadFromFile <= PAGE_SIZE);
+            }
+
+            // 3.5 If the virtual address is backed by an entry in the SwapFile, read its contents
+            PSwapSPT swapSPTEntry;
+            if (SwapSPTSearch(alignedAddress, &swapSPTEntry) == STATUS_SUCCESS) {
+                SwapPageIn(swapSPTEntry);
             }
 
             // 4. Zero the rest of the memory (in case the remaining file size was smaller than a page

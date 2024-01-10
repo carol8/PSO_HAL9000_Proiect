@@ -101,17 +101,17 @@ SyscallHandler(
 		case SyscallIdThreadExit:
 			status = SyscallThreadExit((STATUS)pSyscallParameters[0]);
 			break;
-    case SyscallIdThreadCreate:
-      status = SyscallThreadCreate((PFUNC_ThreadStart)pSyscallParameters[0], (PVOID)pSyscallParameters[1], (UM_HANDLE*)pSyscallParameters[2]);
+		case SyscallIdThreadCreate:
+			status = SyscallThreadCreate((PFUNC_ThreadStart)pSyscallParameters[0], (PVOID)pSyscallParameters[1], (UM_HANDLE*)pSyscallParameters[2]);
 			break;
-    case SyscallIdThreadGetTid:
-      status = SyscallThreadGetTid((UM_HANDLE)pSyscallParameters[0], (TID*)pSyscallParameters[1]);
-      break;
-    case SyscallIdThreadWaitForTermination:
-      status = SyscallThreadWaitForTermination((UM_HANDLE)pSyscallParameters[0], (STATUS*)pSyscallParameters[1]);
-      break;
+		case SyscallIdThreadGetTid:
+			status = SyscallThreadGetTid((UM_HANDLE)pSyscallParameters[0], (TID*)pSyscallParameters[1]);
+			break;
+		case SyscallIdThreadWaitForTermination:
+			status = SyscallThreadWaitForTermination((UM_HANDLE)pSyscallParameters[0], (STATUS*)pSyscallParameters[1]);
+			break;
 		case SyscallIdThreadCloseHandle:
-      status = SyscallThreadCloseHandle((UM_HANDLE)pSyscallParameters[0]);
+			status = SyscallThreadCloseHandle((UM_HANDLE)pSyscallParameters[0]);
 			break;
 		default:
 			LOG_ERROR("Unimplemented syscall called from User-space!\n");

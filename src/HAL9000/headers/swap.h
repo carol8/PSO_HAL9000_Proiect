@@ -5,10 +5,11 @@
 typedef struct _SwapSPT {
 	LIST_ENTRY SwapSPTListElem;
 	// The PID of the process
+	//dc trebuie?
 	PID ProcessPID;
 	// The virtual address of the swapped page
 	PVOID SwappedAddress;
-	// The location of the page in the swap file
+	// The location of the page in the swap file (multiple of PAGE_SIZE)
 	QWORD SwappedFileLocation;
 } SwapSPT, *PSwapSPT;
 
@@ -24,8 +25,8 @@ SwapSystemInit(
 
 STATUS
 SwapPageListInsert(
-	PHYSICAL_ADDRESS pa,
-	PVOID va
+	IN	PHYSICAL_ADDRESS	pa,
+	IN	PVOID				va
 );
 
 STATUS
@@ -45,16 +46,33 @@ SwapPageListResetAccesed(
 
 STATUS
 SwapPageListRemove(
-	PVOID va
+	IN	PVOID				va
+);
+
+STATUS
+SwapSPTInsert(
+	IN	PVOID				SwappedAddress,
+	IN	QWORD				SwappedFileLocation
+);
+
+STATUS
+SwapSPTSearch(
+	IN	PVOID				SwappedAddress,
+	OUT	PSwapSPT*			PSwapSPTEntry
+);
+
+STATUS
+SwapSPTDelete(
+	IN	PVOID				SwappedAddress
 );
 
 
 STATUS
 SwapPageOut(
-
+	OUT	PHYSICAL_ADDRESS*	ppa
 );
 
 STATUS
 SwapPageIn(
-
+	IN	PSwapSPT			swapSPTEntry
 );

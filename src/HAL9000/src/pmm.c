@@ -3,6 +3,7 @@
 #include "int15.h"
 #include "bitmap.h"
 #include "synch.h"
+#include "iomu.h"
 
 static PMM_DATA m_pmmData;
 
@@ -52,6 +53,18 @@ PmmPreinitSystem(
     }
 
     LockInit(&m_pmmData.AllocationLock);
+
+    LockInit(&m_pmmData.SwapBitmapLock);
+    PFILE_OBJECT swapFile = IomuGetSwapFile();
+    QWORD swapFileSize;
+    IoGetFileSize(swapFile, &swapFileSize);
+    BitmapPreinit(&m_pmmData.SwapBitmap, (DWORD)(swapFileSize / PAGE_SIZE));
+
+    LockInit(&m_pmmData.SwapPageListLock);
+    InitializeListHead(&m_pmmData.SwapPageListHead);
+
+	LockInit(&m_pmmData.SwapSPTLock);
+	InitializeListHead(&m_pmmData.SwapSPTListHead);
 }
 
 _No_competing_thread_

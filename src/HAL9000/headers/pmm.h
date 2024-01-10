@@ -39,23 +39,19 @@ typedef struct _PMM_DATA
 	LOCK                AllocationLock;
 
 	_Guarded_by_(AllocationLock)
-		BITMAP              AllocationBitmap;
+	BITMAP              AllocationBitmap;
 
-	LOCK SwapSPTLock;
+	LOCK				SwapSPTLock;
 	_Guarded_by_(SwapSPTLock)
-		LIST_ENTRY SwapSPTListHead;
+	LIST_ENTRY			SwapSPTListHead;
 
-	LOCK SwapPageListLock;
+	LOCK				SwapPageListLock;
 	_Guarded_by_(SwapPageListLock)
-		LIST_ENTRY SwapPageListHead;
+	LIST_ENTRY			SwapPageListHead;
 
-	LOCK SwapSecondChanceIndexLock;
-	_Guarded_by_(SwapSecondChanceIndexLock)
-		QWORD SwapSecondChanceIndex;
-
-	LOCK SwapBitmapLock;
+	LOCK				SwapBitmapLock;
 	_Guarded_by_(SwapBitmapLock)
-		BITMAP SwapBitmap;
+	BITMAP				SwapBitmap;
 
 } PMM_DATA, * PPMM_DATA;
 
